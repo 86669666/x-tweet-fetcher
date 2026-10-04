@@ -4,11 +4,12 @@ Single-stream work on `work/main`. One writer, this checkout. No live X/Twitter 
 
 ## Done in this slice
 
-- Status, list, and article parsers require the URL's own host. A status, list, or article path buried in another host's path or query is rejected.
+- FxTwitter fetch treats a non-object body, a null `tweet`, or a non-object `user` as a typed error. View supplementation skips that payload instead of raising.
 
 ## Next
 
-- No further local slice is queued. Abbreviated Nitter stat text (`12.3K`) stays out until a captured page actually uses it. Do not add a synthetic fixture for that.
+- Quote Nitter HTTP path segments the same way the browser backend already does, so a slash or question mark in a username cannot change the request path.
+- Abbreviated Nitter stat text (`12.3K`) stays out until a captured page actually uses it. Do not add a synthetic fixture for that.
 - Do not add network fetches, session cookies, or an upstream pull request.
 
 ## Out of scope

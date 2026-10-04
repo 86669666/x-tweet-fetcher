@@ -438,3 +438,79 @@ def test_nitter_replies_use_status_url_id(monkeypatch):
     )
     replies = backend.fetch_replies("alice", "1")
     assert replies[0].to_dict()["tweet_id"] == "777"
+
+
+def test_fxtwitter_non_object_payload_is_upstream_down(monkeypatch):
+    from xtf.backends.fxtwitter import FxTwitterBackend
+
+    backend = FxTwitterBackend()
+    monkeypatch.setattr(
+        "xtf.backends.fxtwitter.http.get_json", lambda *args, **kwargs: ["nope"],
+    )
+    with pytest.raises(UpstreamDown):
+        backend.fetch_tweet("alice", "1")
+    with pytest.raises(UpstreamDown):
+        backend.fetch_user_info("alice")
+    with pytest.raises(UpstreamDown):
+        backend.fetch_user_info_dict("alice")
+
+
+def test_fxtwitter_missing_tweet_object_is_upstream_down(monkeypatch):
+    from xtf.backends.fxtwitter import FxTwitterBackend
+
+    backend = FxTwitterBackend()
+    monkeypatch.setattr(
+        "xtf.backends.fxtwitter.http.get_json",
+        lambda *args, **kwargs: {"code": 200, "tweet": None},
+    )
+    with pytest.raises(UpstreamDown, match="no tweet object"):
+        backend.fetch_tweet("alice", "1")
+
+
+def test_fxtwitter_null_user_is_not_found(monkeypatch):
+    from xtf.backends.fxtwitter import FxTwitterBackend
+
+    backend = FxTwitterBackend()
+    monkeypatch.setattr(
+        "xtf.backends.fxtwitter.http.get_json",
+        lambda *args, **kwargs: {"user": None},
+    )
+    with pytest.raises(NotFound):
+        backend.fetch_user_info("alice")
+    with pytest.raises(NotFound):
+        backend.fetch_user_info_dict("alice")
+
+
+def test_fxtwitter_profile_string_user_is_upstream_down(monkeypatch):
+    from xtf.backends.fxtwitter import FxTwitterBackend
+
+    backend = FxTwitterBackend()
+    monkeypatch.setattr(
+        "xtf.backends.fxtwitter.http.get_json",
+        lambda *args, **kwargs: {"user": "alice"},
+    )
+    with pytest.raises(UpstreamDown, match="malformed profile"):
+        backend.fetch_user_info_dict("alice")
+
+
+def test_supplement_views_ignores_malformed_payload(monkeypatch):
+    from xtf.backends.fxtwitter import supplement_views
+
+    payloads = iter([
+        {"code": 200, "tweet": None},
+        ["nope"],
+        {"tweet": {"views": 12}},
+    ])
+    monkeypatch.setattr(
+        "xtf.backends.fxtwitter.http.get_json",
+        lambda *args, **kwargs: next(payloads),
+    )
+    tweets = [
+        {"author": "@alice", "tweet_id": "111", "views": 0},
+        {"author": "@bob", "tweet_id": "222", "views": 0},
+        {"author": "@cara", "tweet_id": "333", "views": 0},
+    ]
+    out = supplement_views(tweets)
+    assert out[0]["views"] == 0
+    assert out[1]["views"] == 0
+    assert out[2]["views"] == 12

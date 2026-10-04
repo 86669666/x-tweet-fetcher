@@ -209,6 +209,29 @@ def normalize_tweet_json(tweet: dict[str, Any]) -> dict[str, Any]:
     return tweet_data
 
 
+def _profile_user(data: Any, username: str) -> dict[str, Any]:
+    """Return the FxTwitter user object or raise a typed error.
+
+    A missing or empty user is NotFound, matching a profile that does not
+    exist. A non-object body, or a truthy non-object ``user``, is
+    UpstreamDown instead of an AttributeError.
+    """
+    if not isinstance(data, dict):
+        raise UpstreamDown(
+            f"FxTwitter returned a non-object profile for @{username}"
+        )
+    user = data.get("user", {})
+    if isinstance(user, dict):
+        if not user:
+            raise NotFound(f"user @{username} not found")
+        return user
+    if not user:
+        raise NotFound(f"user @{username} not found")
+    raise UpstreamDown(
+        f"FxTwitter returned a malformed profile for @{username}"
+    )
+
+
 class FxTwitterBackend(Backend):
     name = "fxtwitter"
 
@@ -224,6 +247,10 @@ class FxTwitterBackend(Backend):
             headers={"User-Agent": "Mozilla/5.0"},
             timeout=self.timeout,
         )
+        if not isinstance(data, dict):
+            raise UpstreamDown(
+                f"FxTwitter returned a non-object payload for {username}/{tweet_id}"
+            )
         code = data.get("code")
         if code == 404:
             raise NotFound(f"tweet {username}/{tweet_id} not found")
@@ -231,13 +258,15 @@ class FxTwitterBackend(Backend):
             raise UpstreamDown(
                 f"FxTwitter returned code {code}: {data.get('message', 'Unknown')}"
             )
-        return normalize_tweet_json(data["tweet"])
+        tweet = data.get("tweet")
+        if not isinstance(tweet, dict):
+            raise UpstreamDown(
+                f"FxTwitter returned no tweet object for {username}/{tweet_id}"
+            )
+        return normalize_tweet_json(tweet)
 
     def fetch_user_info(self, username: str) -> Profile:
-        data = http.get_json(f"{API}/{username}", timeout=10)
-        u = data.get("user", {})
-        if not u:
-            raise NotFound(f"user @{username} not found")
+        u = _profile_user(http.get_json(f"{API}/{username}", timeout=10), username)
         return Profile(
             username=u.get("screen_name", username),
             display_name=u.get("name", ""),
@@ -250,10 +279,7 @@ class FxTwitterBackend(Backend):
 
     def fetch_user_info_dict(self, username: str) -> dict[str, Any]:
         """v1-compatible extended profile dict (includes avatar/banner/etc)."""
-        data = http.get_json(f"{API}/{username}", timeout=10)
-        u = data.get("user", {})
-        if not u:
-            raise NotFound(f"user @{username} not found")
+        u = _profile_user(http.get_json(f"{API}/{username}", timeout=10), username)
         return {
             "username": u.get("screen_name", username),
             "display_name": u.get("name", ""),
@@ -285,10 +311,14 @@ def supplement_views(tweets: list[dict], max_supplement: int = 50) -> list[dict]
             data = http.get_json(
                 f"{API}/{username}/status/{tweet_id}", timeout=5, retries=0
             )
-            views = data.get("tweet", {}).get("views", 0)
-            if views:
-                tw["views"] = views
-                print(f"[views] {username}/{str(tweet_id)[:8]}... -> {views}", file=sys.stderr)
         except XtfError:
-            pass
+            continue
+        # A null or non-object tweet must not escape this best-effort pass.
+        tweet = data.get("tweet") if isinstance(data, dict) else None
+        if not isinstance(tweet, dict):
+            continue
+        views = tweet.get("views", 0)
+        if views:
+            tw["views"] = views
+            print(f"[views] {username}/{str(tweet_id)[:8]}... -> {views}", file=sys.stderr)
     return tweets
