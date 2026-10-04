@@ -15,6 +15,7 @@
 - A negative `--limit` on a fetch uses the documented default of 50 instead of returning an empty page. An explicit `0` is unchanged. Ledger query already had the same guard.
 - `--user` and `--user-info` accept a leading `@`, so `@alice` is fetched as `alice`. `--monitor` already did this.
 - Ledger reads percent-encode the database path. A `?` in the path used to start the SQLite URI query, which dropped `mode=ro` and could create an empty file at the truncated path.
+- HTTP responses larger than 10 MiB are rejected as `upstream_down` instead of being parsed from a silently truncated body.
 
 ## 3.1.0 (2026-08-09)
 

@@ -165,6 +165,38 @@ def test_http_get_text_retries_then_raises(monkeypatch):
     assert calls["n"] == 3  # 1 initial + 2 retries
 
 
+def test_http_rejects_oversized_body(monkeypatch):
+    from xtf import http
+
+    class _Resp:
+        def __init__(self, payload: bytes):
+            self.payload = payload
+
+        def read(self, n=-1):
+            if n is None or n < 0:
+                return self.payload
+            return self.payload[:n]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    monkeypatch.setattr(
+        http.urllib.request, "urlopen",
+        lambda req, timeout=0: _Resp(b"x" * (http._MAX_BODY + 5)),
+    )
+    with pytest.raises(UpstreamDown, match="exceeds"):
+        http.get_text("http://example.test/big", retries=2)
+
+    monkeypatch.setattr(
+        http.urllib.request, "urlopen",
+        lambda req, timeout=0: _Resp(b"ok-body"),
+    )
+    assert http.get_text("http://example.test/small", retries=0) == "ok-body"
+
+
 def test_http_404_no_retry(monkeypatch):
     import urllib.error
 

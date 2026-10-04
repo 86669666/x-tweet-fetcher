@@ -33,7 +33,12 @@ def get_text(url: str, headers: dict[str, str] | None = None,
         try:
             req = urllib.request.Request(url, headers=hdrs)
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return resp.read(_MAX_BODY).decode("utf-8", errors="replace")
+                # Read one extra byte so a body at the cap is kept and a
+                # larger one is rejected instead of parsed as a truncated page.
+                body = resp.read(_MAX_BODY + 1)
+                if len(body) > _MAX_BODY:
+                    raise UpstreamDown(f"response exceeds {_MAX_BODY} bytes — {url}")
+                return body.decode("utf-8", errors="replace")
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 raise NotFound(f"HTTP 404 — {url}") from e
