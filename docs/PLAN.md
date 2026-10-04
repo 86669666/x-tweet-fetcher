@@ -4,14 +4,13 @@ Single-stream work on `work/main`. One writer, this checkout. No live X/Twitter 
 
 ## Done in this slice
 
-- Upstream bodies over 10 MiB raise `upstream_down`. A body at or under the cap is unchanged. The oversized read is not retried.
+- Ledger URL extraction drops trailing prose punctuation (`. , ; : ! ?`). A caller-supplied `urls` list is stored as given.
 
 ## Next
 
-- Strip trailing punctuation from URLs copied out of tweet text into the ledger, without changing URLs that already have no trailing mark.
+- No further local slice is queued. Abbreviated Nitter stat text (`12.3K`) stays out until a captured page actually uses it. Do not add a synthetic fixture for that.
 - Do not add network fetches, session cookies, or an upstream pull request.
 
 ## Out of scope
 
 Upstream `main`, release tags, production deploy, and any checkout outside this fork's `work/main`.
-Abbreviated Nitter stat text (`12.3K`) stays out until a captured fixture uses it.

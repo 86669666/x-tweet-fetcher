@@ -16,6 +16,7 @@
 - `--user` and `--user-info` accept a leading `@`, so `@alice` is fetched as `alice`. `--monitor` already did this.
 - Ledger reads percent-encode the database path. A `?` in the path used to start the SQLite URI query, which dropped `mode=ro` and could create an empty file at the truncated path.
 - HTTP responses larger than 10 MiB are rejected as `upstream_down` instead of being parsed from a silently truncated body.
+- URLs copied out of tweet text for the ledger drop trailing prose punctuation such as a period or comma. A `urls` list supplied on the record is stored unchanged.
 
 ## 3.1.0 (2026-08-09)
 

@@ -92,8 +92,17 @@ def _first(record: dict[str, Any], *keys: str) -> str | None:
 
 
 def _extract_urls(text: str) -> list[str]:
-    """Extract http(s) links from free text when the record has no urls list."""
-    return list(dict.fromkeys(_URL_RE.findall(text)))
+    """Extract http(s) links from free text when the record has no urls list.
+
+    Trailing prose punctuation (``.``, ``,``, ``;``, ``:``, ``!``, ``?``) is
+    removed. An explicit ``urls`` list on the record is not passed through here.
+    """
+    cleaned = []
+    for raw in _URL_RE.findall(text):
+        url = raw.rstrip(".,;:!?")
+        if url:
+            cleaned.append(url)
+    return list(dict.fromkeys(cleaned))
 
 
 def normalize(record: dict[str, Any], source: str, imported_at: str) -> tuple[str, ...]:

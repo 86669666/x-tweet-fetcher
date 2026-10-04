@@ -112,6 +112,32 @@ def test_normalize_from_tweet_to_dict_derives_fields():
     assert raw["author"] == "@qy"                 # raw_json round-trips
 
 
+def test_extract_urls_strips_trailing_prose_punctuation():
+    row = normalize(
+        {
+            "tweet_id": "1",
+            "text": (
+                "see https://example.com/a. and https://example.com/b?q=1, "
+                "plus https://example.com/c also https://example.com/a."
+            ),
+        },
+        "t",
+        "2026-08-09T00:00:00+00:00",
+    )
+    assert json.loads(row[9]) == [
+        "https://example.com/a",
+        "https://example.com/b?q=1",
+        "https://example.com/c",
+    ]
+    # Caller-supplied urls are stored as given, punctuation included.
+    explicit = normalize(
+        {"tweet_id": "2", "text": "x", "urls": ["https://example.com/a."]},
+        "t",
+        "2026-08-09T00:00:00+00:00",
+    )
+    assert json.loads(explicit[9]) == ["https://example.com/a."]
+
+
 def test_normalize_accepts_raw_backend_keys():
     row = normalize(
         {"id": "7", "full_text": "raw row", "created_at": "2026-01-01T00:00:00Z",
