@@ -32,6 +32,10 @@ FIXTURES = Path(__file__).parent / "fixtures"
     ("https://vxtwitter.com/alice/status/6", ("alice", "6")),
     ("https://fixupx.com/carol/status/7", ("carol", "7")),
     ("https://fixvx.com/carol/status/8", ("carol", "8")),
+    ("https://x.com/alice/status/12345/photo/1", ("alice", "12345")),
+    ("https://mobile.fxtwitter.com/alice/status/5", ("alice", "5")),
+    ("https://X.COM/Alice/status/1", ("Alice", "1")),
+    ("https://evil.com@x.com/alice/status/1", ("alice", "1")),
 ])
 def test_parse_tweet_url(url, expected):
     assert parse_tweet_url(url) == expected
@@ -41,6 +45,10 @@ def test_parse_tweet_url(url, expected):
     "https://x.com/alice", "https://example.com/a/status/1", "not a url",
     "https://nottwitter.com/alice/status/1",
     "https://example.com/i/web/status/1",
+    "https://evil.example/x.com/alice/status/1",
+    "https://example.com/?next=https://x.com/alice/status/1",
+    "https://api.x.com/alice/status/1",
+    "see https://x.com/alice/status/5",
 ])
 def test_parse_tweet_url_rejects(bad):
     with pytest.raises(ValueError):
@@ -57,6 +65,9 @@ def test_parse_tweet_url_rejects(bad):
     ("https://notx.com/i/lists/99", None),
     ("https://evil.example/i/lists/99", None),
     ("https://x.com.evil.com/i/lists/99", None),
+    ("https://evil.example/x.com/i/lists/99", None),
+    ("https://example.com/?u=https://x.com/i/lists/99", None),
+    ("https://x.com/i/lists/123456789/members", "123456789"),
 ])
 def test_extract_list_id(s, expected):
     assert extract_list_id(s) == expected
@@ -71,6 +82,9 @@ def test_extract_list_id(s, expected):
     ("https://x.com/alice/status/2011779830157557760", None),
     ("https://notx.com/i/article/2011779830157557760", None),
     ("https://evil.example/i/article/2011779830157557760", None),
+    ("https://example.com/foo/x.com/i/article/2011779830157557760", None),
+    ("https://example.com/?u=https://x.com/i/article/2011779830157557760", None),
+    ("https://x.com/i/article/2011779830157557760/media", "2011779830157557760"),
 ])
 def test_parse_article_id(s, expected):
     assert parse_article_id(s) == expected
@@ -84,6 +98,7 @@ def test_parse_article_id(s, expected):
     ("https://notx.com/alice/status/1", False),
     ("https://example.com/?q=x.com", False),
     ("https://x.com.evil.com/alice", False),
+    ("https://evil.example/x.com/alice/status/1", False),
     ("", False),
 ])
 def test_is_x_url(url, expected):

@@ -198,6 +198,18 @@ def test_normalize_id_from_status_url_not_text_or_lookalike():
             "t",
             "2026-08-09T00:00:00+00:00",
         )
+    with pytest.raises(ValueError):
+        normalize(
+            {"url": "https://evil.example/x.com/alice/status/99", "text": "hi"},
+            "t",
+            "2026-08-09T00:00:00+00:00",
+        )
+    with pytest.raises(ValueError):
+        normalize(
+            {"url": "https://example.com/?next=https://x.com/alice/status/99", "text": "hi"},
+            "t",
+            "2026-08-09T00:00:00+00:00",
+        )
 
 
 def test_normalize_rejects_missing_fields():

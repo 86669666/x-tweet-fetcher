@@ -4,7 +4,7 @@ Single-stream work on `work/main`. One writer, this checkout. No live X/Twitter 
 
 ## Done in this slice
 
-- Mentions cache load ignores a non-list `seen`, drops non-string entries, and does not treat a cache that already has URLs as a first run when `is_baseline` is missing.
+- Status, list, and article parsers require the URL's own host. A status, list, or article path buried in another host's path or query is rejected.
 
 ## Next
 

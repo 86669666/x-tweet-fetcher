@@ -67,6 +67,16 @@ def test_nitter_entry_id_comes_from_status_url():
         "url": "https://nottwitter.com/alice/status/99",
     })
     assert rejected.tweet_id == ""
+    buried = Tweet.from_nitter_entry({
+        "username": "alice", "text": "x",
+        "url": "https://evil.example/x.com/alice/status/99",
+    })
+    assert buried.tweet_id == ""
+    wrapped = Tweet.from_nitter_entry({
+        "username": "alice", "text": "x",
+        "url": "https://example.com/?next=https://x.com/alice/status/99",
+    })
+    assert wrapped.tweet_id == ""
 
 
 def test_snapshot_reply_id_comes_from_status_url():

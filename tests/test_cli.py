@@ -54,6 +54,19 @@ def test_invalid_url_json_envelope():
     assert out["error_code"] == "invalid_input"  # v2 addition
 
 
+def test_url_buried_in_other_host_is_invalid():
+    proc = subprocess.run(
+        [sys.executable, "-m", "xtf.cli", "--url",
+         "https://evil.example/x.com/alice/status/1"],
+        capture_output=True, text=True,
+        cwd=ROOT, env={"PYTHONPATH": str(ROOT / "src"), "PATH": "/usr/bin:/bin"},
+    )
+    assert proc.returncode == 1
+    out = json.loads(proc.stdout)
+    assert out["error_code"] == "invalid_input"
+    assert "tweet" not in out
+
+
 def test_compat_shim_exists_and_parses():
     shim = ROOT / "scripts" / "fetch_tweet.py"
     assert shim.exists()

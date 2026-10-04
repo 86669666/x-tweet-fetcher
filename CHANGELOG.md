@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Status, list, and article ids are taken from the URL host and path. A page on another host that only contains `x.com/...` in its path or query is rejected, so it cannot be archived or fetched as that id.
+
 - Browser backend keeps the configured Nitter scheme. The default `http://127.0.0.1:8788` is no longer rewritten to `https://`.
 - A Nitter HTTP 404 stays `not_found`. It is no longer reported as `backend_unavailable` ("no instance reachable"), and it does not fail over to the next instance.
 - `--url` accepts `/i/web/status/<id>` plus fxtwitter, vxtwitter, fixupx, and fixvx links. Lookalike hosts such as `nottwitter.com` are rejected. `/i/web/status/<id>` is fetched through FxTwitter's `/i/status/<id>` route.
