@@ -17,6 +17,7 @@
 - Ledger reads percent-encode the database path. A `?` in the path used to start the SQLite URI query, which dropped `mode=ro` and could create an empty file at the truncated path.
 - HTTP responses larger than 10 MiB are rejected as `upstream_down` instead of being parsed from a silently truncated body.
 - URLs copied out of tweet text for the ledger drop trailing prose punctuation such as a period or comma. A `urls` list supplied on the record is stored unchanged.
+- A malformed mentions cache (`seen` not a list of strings, or `null`) no longer crashes the monitor. Non-string entries are dropped. A cache that already has URLs but no `is_baseline` flag is not treated as a first run.
 
 ## 3.1.0 (2026-08-09)
 

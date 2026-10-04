@@ -274,6 +274,31 @@ def test_monitor_baseline_then_increment(tmp_path, monkeypatch):
     assert set(data["seen"]) == {"https://x.com/a/status/1", "https://x.com/b/status/2"}
 
 
+def test_monitor_cache_drops_malformed_seen(tmp_path, monkeypatch):
+    monkeypatch.setenv("XTF_CACHE_DIR", str(tmp_path))
+    from xtf import monitor
+
+    (tmp_path / "mentions-cache-alice.json").write_text(
+        '{"seen": "https://x.com/a/status/1", "is_baseline": false}'
+    )
+    cache = monitor._load_cache("alice")
+    assert cache == {"seen": [], "is_baseline": False}
+
+    (tmp_path / "mentions-cache-bob.json").write_text(
+        '{"seen": [1, "https://x.com/b/status/2"]}'
+    )
+    cache = monitor._load_cache("@Bob")
+    assert cache["seen"] == ["https://x.com/b/status/2"]
+    assert cache["is_baseline"] is False
+
+    (tmp_path / "mentions-cache-cara.json").write_text('{"seen": []}')
+    assert monitor._load_cache("cara")["is_baseline"] is True
+
+    (tmp_path / "mentions-cache-dan.json").write_text("null")
+    fresh = monitor._load_cache("dan")
+    assert fresh == {"seen": [], "is_baseline": True}
+
+
 def test_monitor_legacy_list_cache(tmp_path, monkeypatch):
     monkeypatch.setenv("XTF_CACHE_DIR", str(tmp_path))
     from xtf import monitor

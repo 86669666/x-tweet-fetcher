@@ -30,6 +30,12 @@ def _get_cache_path(username: str) -> Path:
     return config.cache_dir() / f"mentions-cache-{_cache_slug(username)}.json"
 
 
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str)]
+
+
 def _load_cache(username: str) -> dict:
     path = _get_cache_path(username)
     if path.exists():
@@ -37,8 +43,15 @@ def _load_cache(username: str) -> dict:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             if isinstance(data, list):  # v1 legacy format (bare list)
-                return {"seen": data, "is_baseline": False}
-            return data
+                return {"seen": _string_list(data), "is_baseline": False}
+            if isinstance(data, dict):
+                seen = _string_list(data.get("seen"))
+                if "is_baseline" in data:
+                    is_baseline = bool(data.get("is_baseline"))
+                else:
+                    # A file that already recorded URLs is not a first run.
+                    is_baseline = not seen
+                return {"seen": seen, "is_baseline": is_baseline}
         except Exception:
             pass
     return {"seen": [], "is_baseline": True}

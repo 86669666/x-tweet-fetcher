@@ -4,7 +4,7 @@ Single-stream work on `work/main`. One writer, this checkout. No live X/Twitter 
 
 ## Done in this slice
 
-- Ledger URL extraction drops trailing prose punctuation (`. , ; : ! ?`). A caller-supplied `urls` list is stored as given.
+- Mentions cache load ignores a non-list `seen`, drops non-string entries, and does not treat a cache that already has URLs as a first run when `is_baseline` is missing.
 
 ## Next
 
