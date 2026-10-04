@@ -14,6 +14,7 @@
 - `--list` and `--article` accept bare ids and `x.com` / `twitter.com` URLs only. A lookalike host that contains `/i/lists/` or `/i/article/` is rejected. Mention search ignores results whose host is not X or Twitter, including `notx.com` and pages that only mention `x.com` in the query string.
 - A negative `--limit` on a fetch uses the documented default of 50 instead of returning an empty page. An explicit `0` is unchanged. Ledger query already had the same guard.
 - `--user` and `--user-info` accept a leading `@`, so `@alice` is fetched as `alice`. `--monitor` already did this.
+- Ledger reads percent-encode the database path. A `?` in the path used to start the SQLite URI query, which dropped `mode=ro` and could create an empty file at the truncated path.
 
 ## 3.1.0 (2026-08-09)
 

@@ -306,3 +306,20 @@ def test_query_ledger_negative_limit_uses_default(tmp_path):
     assert len(query_ledger(db, limit=-1)) == 50
     assert query_ledger(db, limit=10, offset=-4) == query_ledger(db, limit=10, offset=0)
 
+
+
+def test_readonly_uri_encodes_question_mark_in_path(tmp_path):
+    folder = tmp_path / "db?name"
+    folder.mkdir()
+    db = folder / "ledger.db"
+    archive_tweets(db, [_tweet_dict("1", "hello question")])
+    hits = query_ledger(db, keyword="hello")
+    assert [h["tweet_id"] for h in hits] == ["1"]
+    assert ledger_stats(db)["total_tweets"] == 1
+    assert count_existing_tweets(db, ["1"]) == 1
+    # A naive file:{path}?mode=ro URI would create this empty sibling.
+    assert not (tmp_path / "db").exists()
+
+    spaced = tmp_path / "my ledger" / "a.db"
+    archive_tweets(spaced, [_tweet_dict("2", "spaced path")])
+    assert query_ledger(spaced)[0]["tweet_id"] == "2"

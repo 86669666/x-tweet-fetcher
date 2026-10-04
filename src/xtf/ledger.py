@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+import urllib.parse
 from collections.abc import Iterable
 from datetime import datetime, timezone
 from pathlib import Path
@@ -150,12 +151,22 @@ def _as_dict(tweet: dict[str, Any] | Any) -> dict[str, Any]:
     return dict(tweet)
 
 
+def _ro_uri(db_path: Path) -> str:
+    """Read-only SQLite URI with the path percent-encoded.
+
+    A ``?`` in the path must not start the URI query. If it does, ``mode=ro``
+    is dropped and SQLite may create an empty file at the truncated path.
+    """
+    path = Path(db_path).resolve().as_posix()
+    return "file:" + urllib.parse.quote(path) + "?mode=ro"
+
+
 def count_existing_tweets(db_path: Path, tweet_ids: Iterable[str]) -> int:
     """Count how many of the given ids already exist (read-only)."""
     ids = list(tweet_ids)
     if not ids or not Path(db_path).exists():
         return 0
-    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    conn = sqlite3.connect(_ro_uri(db_path), uri=True)
     try:
         count = 0
         for offset in range(0, len(ids), 900):
@@ -236,7 +247,7 @@ def archive_tweets(
 
 
 def _connect_ro(db_path: Path) -> sqlite3.Connection:
-    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    conn = sqlite3.connect(_ro_uri(db_path), uri=True)
     conn.row_factory = sqlite3.Row
     return conn
 

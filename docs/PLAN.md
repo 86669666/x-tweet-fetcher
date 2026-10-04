@@ -4,11 +4,11 @@ Single-stream work on `work/main`. One writer, this checkout. No live X/Twitter 
 
 ## Done in this slice
 
-- `--user @alice` and `--user-info @alice` are fetched as `alice`. A lone `@` is not turned into an empty handle.
+- Read-only ledger opens encode the path. A `?` in the database path no longer drops `mode=ro` or creates an empty sibling file.
 
 ## Next
 
-- Percent-encode read-only SQLite URIs. A `?` in the ledger path is parsed as the URI query, so query/stats can open the wrong file and even create an empty sibling.
+- Reject upstream HTTP bodies larger than the existing 10 MiB cap instead of parsing a truncated payload as success.
 - Do not add network fetches, session cookies, or an upstream pull request.
 
 ## Out of scope
