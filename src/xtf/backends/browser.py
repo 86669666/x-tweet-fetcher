@@ -26,6 +26,7 @@ from ..parsers.snapshot import (
     parse_replies_snapshot,
     parse_timeline_snapshot,
 )
+from ..parsers.urls import is_x_url
 from .base import Backend
 
 
@@ -210,7 +211,7 @@ class BrowserBackend(Backend):
             raw = self.drv.camofox_search(query, num=limit, port=self.port)
             for item in raw:
                 url = item.get("url", "").strip()
-                if url and url not in seen_urls and "x.com" in url:
+                if url and url not in seen_urls and is_x_url(url):
                     seen_urls.add(url)
                     results.append({
                         "url": url,

@@ -12,7 +12,7 @@ from xtf.parsers.nitter_html import (
     _parse_html,
     parse_tweet_detail_html,
 )
-from xtf.parsers.urls import extract_list_id, parse_article_id, parse_tweet_url
+from xtf.parsers.urls import extract_list_id, is_x_url, parse_article_id, parse_tweet_url
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -51,7 +51,12 @@ def test_parse_tweet_url_rejects(bad):
     ("123456789", "123456789"),
     ("https://x.com/i/lists/123456789", "123456789"),
     ("twitter.com/i/lists/42?foo=1", "42"),
+    ("https://www.x.com/i/lists/7", "7"),
+    ("https://mobile.twitter.com/i/lists/8", "8"),
     ("garbage", None),
+    ("https://notx.com/i/lists/99", None),
+    ("https://evil.example/i/lists/99", None),
+    ("https://x.com.evil.com/i/lists/99", None),
 ])
 def test_extract_list_id(s, expected):
     assert extract_list_id(s) == expected
@@ -60,11 +65,29 @@ def test_extract_list_id(s, expected):
 @pytest.mark.parametrize("s,expected", [
     ("2011779830157557760", "2011779830157557760"),
     ("https://x.com/i/article/2011779830157557760", "2011779830157557760"),
+    ("https://twitter.com/i/article/2011779830157557760", "2011779830157557760"),
     ("123", None),  # too short
     ("no id here", None),
+    ("https://x.com/alice/status/2011779830157557760", None),
+    ("https://notx.com/i/article/2011779830157557760", None),
+    ("https://evil.example/i/article/2011779830157557760", None),
 ])
 def test_parse_article_id(s, expected):
     assert parse_article_id(s) == expected
+
+
+@pytest.mark.parametrize("url,expected", [
+    ("https://x.com/alice/status/1", True),
+    ("https://twitter.com/bob", True),
+    ("https://mobile.twitter.com/alice", True),
+    ("x.com/alice", True),
+    ("https://notx.com/alice/status/1", False),
+    ("https://example.com/?q=x.com", False),
+    ("https://x.com.evil.com/alice", False),
+    ("", False),
+])
+def test_is_x_url(url, expected):
+    assert is_x_url(url) is expected
 
 
 # ── FxTwitter JSON normalization ──────────────────────────────────────────

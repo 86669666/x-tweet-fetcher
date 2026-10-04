@@ -253,6 +253,26 @@ def test_monitor_legacy_list_cache(tmp_path, monkeypatch):
     assert cache["seen"] == ["https://x.com/x/status/9"]
 
 
+def test_search_mentions_rejects_lookalike_hosts():
+    from xtf.backends.browser import BrowserBackend
+
+    backend = BrowserBackend(nitter_instance="http://127.0.0.1:9")
+
+    class _Drv:
+        def camofox_search(self, query, num=10, port=0):
+            return [
+                {"url": "https://x.com/alice/status/1", "title": "ok", "snippet": ""},
+                {"url": "https://twitter.com/bob", "title": "ok", "snippet": ""},
+                {"url": "https://notx.com/alice/status/1", "title": "bad", "snippet": ""},
+                {"url": "https://example.com/?q=x.com", "title": "bad", "snippet": ""},
+                {"url": "https://x.com.evil.com/alice", "title": "bad", "snippet": ""},
+            ]
+
+    backend._drv = _Drv()
+    urls = [item["url"] for item in backend.search_mentions("alice")]
+    assert urls == ["https://x.com/alice/status/1", "https://twitter.com/bob"]
+
+
 def test_browser_preserves_nitter_scheme(monkeypatch):
     monkeypatch.setenv("XTF_NITTER", "http://127.0.0.1:8788")
     monkeypatch.delenv("NITTER_URL", raising=False)

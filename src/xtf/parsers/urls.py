@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import urllib.parse
 
 # Left boundary stops ``twitter.com`` matching inside lookalike hosts
 # such as ``nottwitter.com``. Embed hosts are included because users paste
@@ -69,50 +70,75 @@ def resolve_tweet_id(record: dict) -> str:
     return ""
 
 
+_X_HOST_RE = (
+    r"(?<![A-Za-z0-9])(?:https?://)?"
+    r"(?:(?:www|mobile|m)\.)?"
+    r"(?:x\.com|twitter\.com)"
+)
+_LIST_URL_RE = re.compile(_X_HOST_RE + r"/i/lists/(?P<id>\d+)", re.IGNORECASE)
+_ARTICLE_URL_RE = re.compile(
+    _X_HOST_RE + r"/i/article/(?P<id>\d{10,25})",
+    re.IGNORECASE,
+)
+_X_URL_HOSTS = frozenset({
+    "x.com",
+    "twitter.com",
+    "www.x.com",
+    "www.twitter.com",
+    "mobile.x.com",
+    "mobile.twitter.com",
+    "m.x.com",
+    "m.twitter.com",
+})
+
+
+def is_x_url(value: object) -> bool:
+    """True when the URL host is X or Twitter.
+
+    A lookalike such as ``notx.com``, or a page that only mentions ``x.com``
+    in the query string, is not an X URL.
+    """
+    if not isinstance(value, str):
+        return False
+    text = value.strip()
+    if not text:
+        return False
+    if "://" not in text:
+        text = "https://" + text
+    try:
+        host = urllib.parse.urlparse(text).hostname
+    except ValueError:
+        return False
+    if not host:
+        return False
+    return host.lower() in _X_URL_HOSTS
+
+
 def extract_list_id(input_str: str) -> str | None:
-    """Extract list ID from a URL or raw ID string.
+    """Extract list ID from a bare id or an x.com / twitter.com list URL.
 
-    Accepts:
-      - Pure numeric ID:           "123456789"
-      - List URL:                 "https://x.com/i/lists/123456789"
-      - List URL (twitter.com):  "https://twitter.com/i/lists/123456789"
-      - List URL (no scheme):    "x.com/i/lists/123456789"
-
-    Returns the list ID string (digits only), or None if unparseable.
+    Other hosts are rejected, including lookalikes that merely contain
+    ``/i/lists/<id>``.
     """
     input_str = input_str.strip()
-
-    # Pure numeric ID
-    if re.match(r'^\d+$', input_str):
+    if re.fullmatch(r"\d+", input_str):
         return input_str
-
-    # URL containing /i/lists/<id>
-    m = re.search(r'/i/lists/(\d+)', input_str)
-    if m:
-        return m.group(1)
-
+    match = _LIST_URL_RE.search(input_str)
+    if match:
+        return match.group("id")
     return None
 
+
 def parse_article_id(input_str: str) -> str | None:
-    """Extract article ID from a URL or raw ID string.
+    """Extract an article id from a bare id or an x.com / twitter.com article URL.
 
-    Accepts:
-      - Pure numeric ID:           "2011779830157557760"
-      - Article URL:               "https://x.com/i/article/2011779830157557760"
-      - Article URL (no scheme):   "x.com/i/article/2011779830157557760"
-      - Tweet URL whose text links to an article (pass the ID directly in that case)
-
-    Returns the article ID string, or None if unparseable.
+    Other hosts are rejected. A status URL is not an article URL; pass the
+    article id itself in that case.
     """
     input_str = input_str.strip()
-
-    # Pure numeric ID
-    if re.match(r'^\d{10,25}$', input_str):
+    if re.fullmatch(r"\d{10,25}", input_str):
         return input_str
-
-    # URL containing /i/article/<id>
-    m = re.search(r'/i/article/(\d{10,25})', input_str)
-    if m:
-        return m.group(1)
-
+    match = _ARTICLE_URL_RE.search(input_str)
+    if match:
+        return match.group("id")
     return None
