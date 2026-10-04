@@ -158,10 +158,17 @@ def count_existing_tweets(db_path: Path, tweet_ids: Iterable[str]) -> int:
         for offset in range(0, len(ids), 900):
             chunk = ids[offset : offset + 900]
             placeholders = ",".join("?" for _ in chunk)
-            count += conn.execute(
-                f"SELECT COUNT(*) FROM tweets WHERE tweet_id IN ({placeholders})",
-                chunk,
-            ).fetchone()[0]
+            try:
+                count += conn.execute(
+                    f"SELECT COUNT(*) FROM tweets WHERE tweet_id IN ({placeholders})",
+                    chunk,
+                ).fetchone()[0]
+            except sqlite3.OperationalError as exc:
+                # A foreign DB with no tweets table is an empty ledger, not a crash.
+                # Other operational errors (locked, malformed) still propagate.
+                if "no such table" in str(exc).lower():
+                    return 0
+                raise
         return count
     finally:
         conn.close()
@@ -246,6 +253,16 @@ def query_ledger(
     db_path = Path(db_path)
     if not db_path.exists():
         return []
+    # SQLite treats LIMIT -1 as unlimited. A negative CLI --limit must not
+    # dump the whole archive; use the same default the CLI documents (50).
+    if limit is None or int(limit) < 0:
+        limit = 50
+    else:
+        limit = int(limit)
+    if offset is None or int(offset) < 0:
+        offset = 0
+    else:
+        offset = int(offset)
     conn = _connect_ro(db_path)
     try:
         table = conn.execute(

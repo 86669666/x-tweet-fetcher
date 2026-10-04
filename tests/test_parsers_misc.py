@@ -22,6 +22,16 @@ FIXTURES = Path(__file__).parent / "fixtures"
     ("https://x.com/alice/status/12345", ("alice", "12345")),
     ("https://twitter.com/bob_1/status/999?s=20", ("bob_1", "999")),
     ("x.com/carol/status/42#photo", ("carol", "42")),
+    ("  https://x.com/alice/status/12345  ", ("alice", "12345")),
+    ("https://x.com/i/web/status/1234567890?s=20", ("i", "1234567890")),
+    ("https://twitter.com/i/web/status/42", ("i", "42")),
+    ("https://x.com/i/status/20", ("i", "20")),
+    ("https://mobile.twitter.com/alice/status/7", ("alice", "7")),
+    ("https://www.x.com/alice/status/9", ("alice", "9")),
+    ("https://fxtwitter.com/alice/status/5", ("alice", "5")),
+    ("https://vxtwitter.com/alice/status/6", ("alice", "6")),
+    ("https://fixupx.com/carol/status/7", ("carol", "7")),
+    ("https://fixvx.com/carol/status/8", ("carol", "8")),
 ])
 def test_parse_tweet_url(url, expected):
     assert parse_tweet_url(url) == expected
@@ -29,6 +39,8 @@ def test_parse_tweet_url(url, expected):
 
 @pytest.mark.parametrize("bad", [
     "https://x.com/alice", "https://example.com/a/status/1", "not a url",
+    "https://nottwitter.com/alice/status/1",
+    "https://example.com/i/web/status/1",
 ])
 def test_parse_tweet_url_rejects(bad):
     with pytest.raises(ValueError):
@@ -85,6 +97,25 @@ class TestFxTwitterNormalize:
 
     def test_extract_media_empty(self):
         assert extract_media({"media": {}}) is None
+        assert extract_media({"media": None}) is None
+        assert extract_media({}) is None
+        assert extract_media({"media": {"all": None, "videos": None}}) is None
+        assert extract_media({"media": {"all": [None, {"type": "photo", "url": "https://pbs.twimg.com/a.jpg"}]}}) == {
+            "images": [{"url": "https://pbs.twimg.com/a.jpg"}],
+        }
+
+    def test_null_author_and_quote_author(self):
+        out = normalize_tweet_json({
+            "text": "hi",
+            "author": None,
+            "likes": 1,
+            "quote": {"text": "quoted", "author": None, "likes": 2},
+        })
+        assert out["author"] == ""
+        assert out["screen_name"] == ""
+        assert out["quote"]["author"] == ""
+        assert out["quote"]["screen_name"] == ""
+        assert out["quote"]["text"] == "quoted"
 
 
 @pytest.fixture(scope="module")

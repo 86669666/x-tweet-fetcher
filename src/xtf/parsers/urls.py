@@ -3,23 +3,35 @@ from __future__ import annotations
 
 import re
 
+# Left boundary stops ``twitter.com`` matching inside lookalike hosts
+# such as ``nottwitter.com``. Embed hosts are included because users paste
+# fxtwitter / vxtwitter / fixupx / fixvx links.
+_TWEET_URL_RE = re.compile(
+    r"(?<![A-Za-z0-9])(?:https?://)?"
+    r"(?:(?:www|mobile|m)\.)?"
+    r"(?:x\.com|twitter\.com|fxtwitter\.com|vxtwitter\.com|fixupx\.com|fixvx\.com)"
+    r"/(?:i/web/status/(?P<web_id>\d+)|(?P<user>[A-Za-z0-9_]{1,15})/status/(?P<id>\d+))",
+    re.IGNORECASE,
+)
+
 
 def parse_tweet_url(url: str) -> tuple:
-    """Extract username and tweet_id from X/Twitter URL."""
-    patterns = [
-        r'(?:x\.com|twitter\.com)/([a-zA-Z0-9_]{1,15})/status/(\d+)',
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, url)
-        if match:
-            username = match.group(1)
-            tweet_id = match.group(2)
-            if not re.match(r'^[a-zA-Z0-9_]{1,15}$', username):
-                raise ValueError(f"Invalid username format: {username}")
-            if not tweet_id.isdigit():
-                raise ValueError(f"Invalid tweet ID format: {tweet_id}")
-            return username, tweet_id
-    raise ValueError(f"Cannot parse tweet URL: {url}")
+    """Extract username and tweet_id from an X/Twitter or embed URL.
+
+    ``/i/web/status/<id>`` carries no author. The username is returned as
+    ``i`` so callers hit FxTwitter's username-less ``/i/status/<id>`` route.
+    ``/i/status/<id>`` already parses as username ``i`` for the same reason.
+    """
+    match = _TWEET_URL_RE.search(url.strip())
+    if not match:
+        raise ValueError(f"Cannot parse tweet URL: {url}")
+    tweet_id = match.group("web_id") or match.group("id")
+    username = "i" if match.group("web_id") else match.group("user")
+    if not username or not re.fullmatch(r"[A-Za-z0-9_]{1,15}", username):
+        raise ValueError(f"Invalid username format: {username}")
+    if not tweet_id or not tweet_id.isdigit():
+        raise ValueError(f"Invalid tweet ID format: {tweet_id}")
+    return username, tweet_id
 
 
 
@@ -70,5 +82,3 @@ def parse_article_id(input_str: str) -> str | None:
         return m.group(1)
 
     return None
-
-

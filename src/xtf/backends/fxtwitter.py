@@ -154,12 +154,22 @@ def _reconstruct_article(article: dict[str, Any]) -> dict[str, Any]:
     return article_data
 
 
+def _as_map(value: Any) -> dict[str, Any]:
+    """Return ``value`` when it is a dict; otherwise an empty dict.
+
+    FxTwitter sometimes sends ``null`` for ``author`` / ``quote`` instead of
+    omitting the key. ``dict.get(key, {})`` does not help in that case.
+    """
+    return value if isinstance(value, dict) else {}
+
+
 def normalize_tweet_json(tweet: dict[str, Any]) -> dict[str, Any]:
     """FxTwitter tweet object -> v1-compatible tweet dict. Pure."""
+    author = _as_map(tweet.get("author"))
     tweet_data: dict[str, Any] = {
         "text": tweet.get("text", ""),
-        "author": tweet.get("author", {}).get("name", ""),
-        "screen_name": tweet.get("author", {}).get("screen_name", ""),
+        "author": author.get("name", ""),
+        "screen_name": author.get("screen_name", ""),
         "likes": tweet.get("likes", 0),
         "retweets": tweet.get("retweets", 0),
         "bookmarks": tweet.get("bookmarks", 0),
@@ -175,11 +185,12 @@ def normalize_tweet_json(tweet: dict[str, Any]) -> dict[str, Any]:
         tweet_data["media"] = media
 
     if tweet.get("quote"):
-        qt = tweet["quote"]
+        qt = _as_map(tweet.get("quote"))
+        qauthor = _as_map(qt.get("author"))
         tweet_data["quote"] = {
             "text": qt.get("text", ""),
-            "author": qt.get("author", {}).get("name", ""),
-            "screen_name": qt.get("author", {}).get("screen_name", ""),
+            "author": qauthor.get("name", ""),
+            "screen_name": qauthor.get("screen_name", ""),
             "likes": qt.get("likes", 0),
             "retweets": qt.get("retweets", 0),
             "views": qt.get("views", 0),

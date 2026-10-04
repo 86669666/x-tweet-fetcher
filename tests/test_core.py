@@ -7,6 +7,7 @@ from xtf.backends.base import Backend
 from xtf.exceptions import (
     AllBackendsFailed,
     BackendUnavailable,
+    NotFound,
     NotSupported,
     RateLimited,
     UpstreamDown,
@@ -218,3 +219,79 @@ def test_monitor_legacy_list_cache(tmp_path, monkeypatch):
     cache = monitor._load_cache("@Bob")
     assert cache["is_baseline"] is False
     assert cache["seen"] == ["https://x.com/x/status/9"]
+
+
+def test_browser_preserves_nitter_scheme(monkeypatch):
+    monkeypatch.setenv("XTF_NITTER", "http://127.0.0.1:8788")
+    monkeypatch.delenv("NITTER_URL", raising=False)
+    from xtf.backends.browser import BrowserBackend
+
+    local = BrowserBackend()
+    assert local.nitter_base == "http://127.0.0.1:8788"
+    assert local._page_url("alice", "status", "20") == "http://127.0.0.1:8788/alice/status/20"
+    assert local._page_url("i", "lists", "99") == "http://127.0.0.1:8788/i/lists/99"
+
+    remote = BrowserBackend(nitter_instance="nitter.example")
+    assert remote._page_url("bob") == "https://nitter.example/bob"
+
+    explicit = BrowserBackend(nitter_instance="https://nitter.example/base/")
+    assert explicit.nitter_base == "https://nitter.example/base"
+    assert explicit._page_url("a b") == "https://nitter.example/base/a%20b"
+
+
+def test_nitter_not_found_does_not_failover(monkeypatch):
+    from xtf.backends import nitter as nitter_mod
+
+    calls = []
+
+    def fake_get_text(url, headers=None, timeout=15, retries=2):
+        calls.append(url)
+        raise NotFound(f"HTTP 404 — {url}")
+
+    monkeypatch.setattr(nitter_mod.http, "probe", lambda url, timeout=3: False)
+    monkeypatch.setattr(nitter_mod.http, "get_text", fake_get_text)
+    backend = nitter_mod.NitterBackend(
+        instances=["http://one.example", "http://two.example"]
+    )
+    with pytest.raises(NotFound):
+        backend._get_html("/alice")
+    assert calls == ["http://one.example/alice"]
+
+
+def test_nitter_failsover_on_upstream_down(monkeypatch):
+    from xtf.backends import nitter as nitter_mod
+
+    calls = []
+
+    def fake_get_text(url, headers=None, timeout=15, retries=2):
+        calls.append(url)
+        if url.startswith("http://dead.example"):
+            raise UpstreamDown(f"down {url}")
+        return "<html>ok</html>"
+
+    monkeypatch.setattr(nitter_mod.http, "probe", lambda url, timeout=3: False)
+    monkeypatch.setattr(nitter_mod.http, "get_text", fake_get_text)
+    backend = nitter_mod.NitterBackend(
+        instances=["http://dead.example", "http://ok.example"]
+    )
+    assert backend._get_html("/alice") == "<html>ok</html>"
+    assert calls == ["http://dead.example/alice", "http://ok.example/alice"]
+    assert backend._live == "http://ok.example"
+
+
+def test_monitor_cache_cannot_escape_dir(tmp_path, monkeypatch):
+    monkeypatch.setenv("XTF_CACHE_DIR", str(tmp_path))
+    from xtf import monitor
+
+    path = monitor._get_cache_path("../../etc/passwd")
+    assert path.parent == tmp_path
+    assert ".." not in path.name
+    assert "/" not in path.name
+
+    monitor._save_cache("../../etc/passwd", {"seen": ["https://x.com/a/status/1"], "is_baseline": False})
+    written = list(tmp_path.iterdir())
+    assert len(written) == 1
+    assert written[0].parent == tmp_path
+    loaded = monitor._load_cache("../../etc/passwd")
+    assert loaded["seen"] == ["https://x.com/a/status/1"]
+

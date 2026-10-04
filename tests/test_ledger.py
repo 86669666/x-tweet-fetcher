@@ -259,3 +259,20 @@ def test_ledger_stats_foreign_db_no_crash(tmp_path):
         conn.close()
     stats = ledger_stats(db)
     assert stats["exists"] is True and stats["total_tweets"] == 0
+
+
+def test_count_existing_tweets_missing_table(tmp_path):
+    db = tmp_path / "foreign.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE notes (id INTEGER)")
+    conn.commit()
+    conn.close()
+    assert count_existing_tweets(db, ["1", "2"]) == 0
+
+
+def test_query_ledger_negative_limit_uses_default(tmp_path):
+    db = tmp_path / "ledger.db"
+    archive_tweets(db, [_tweet_dict(str(i), f"row {i}") for i in range(60)])
+    assert len(query_ledger(db, limit=-1)) == 50
+    assert query_ledger(db, limit=10, offset=-4) == query_ledger(db, limit=10, offset=0)
+

@@ -7,11 +7,18 @@ from typing import Any
 def extract_media(tweet_obj: dict[str, Any]) -> dict[str, Any] | None:
     """Extract media information (photos/videos) from tweet object."""
     media_data = {}
-    media = tweet_obj.get("media", {})
+    media = tweet_obj.get("media")
+    if not isinstance(media, dict):
+        return None
 
-    all_media = media.get("all", [])
-    if all_media and isinstance(all_media, list):
-        photos = [item for item in all_media if item.get("type") == "photo"]
+    all_media = media.get("all") or []
+    if not isinstance(all_media, list):
+        all_media = []
+    if all_media:
+        photos = [
+            item for item in all_media
+            if isinstance(item, dict) and item.get("type") == "photo"
+        ]
         if photos:
             media_data["images"] = []
             for photo in photos:
@@ -22,10 +29,12 @@ def extract_media(tweet_obj: dict[str, Any]) -> dict[str, Any] | None:
                     image_info["height"] = photo.get("height")
                 media_data["images"].append(image_info)
 
-    videos = media.get("videos", [])
-    if videos and isinstance(videos, list) and len(videos) > 0:
+    videos = media.get("videos") or []
+    if isinstance(videos, list) and len(videos) > 0:
         media_data["videos"] = []
         for video in videos:
+            if not isinstance(video, dict):
+                continue
             video_info = {}
             if video.get("url"):
                 video_info["url"] = video.get("url")
@@ -36,6 +45,8 @@ def extract_media(tweet_obj: dict[str, Any]) -> dict[str, Any] | None:
             if video.get("variants") and isinstance(video.get("variants"), list):
                 video_info["variants"] = []
                 for variant in video.get("variants", []):
+                    if not isinstance(variant, dict):
+                        continue
                     variant_info = {}
                     if variant.get("url"):
                         variant_info["url"] = variant.get("url")

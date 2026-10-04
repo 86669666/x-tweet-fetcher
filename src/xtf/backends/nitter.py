@@ -2,7 +2,7 @@
 
 Supports multiple instances via ``XTF_NITTER=url1,url2`` with health-check
 and failover: the first reachable instance is used; on RateLimited /
-UpstreamDown mid-task the next instance is tried.
+UpstreamDown mid-task the next instance is tried. NotFound is terminal.
 """
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import sys
 import urllib.parse
 
 from .. import config, http
-from ..exceptions import BackendUnavailable, XtfError
+from ..exceptions import BackendUnavailable, NotFound, RateLimited, UpstreamDown
 from ..models import Profile, Reply, Tweet
 from ..parsers.nitter_html import (
     _extract_next_cursor,
@@ -31,6 +31,9 @@ _HEADERS = {
 }
 
 _MAX_PAGES = 10
+# A dead or rate-limited instance should fail over. A 404 should not:
+# the instance answered, and the resource is missing.
+_FAILOVER = (RateLimited, UpstreamDown)
 
 
 class NitterBackend(Backend):
@@ -65,7 +68,12 @@ class NitterBackend(Backend):
                 html = http.get_text(inst + path, headers=_HEADERS, timeout=15)
                 self._live = inst
                 return html
-            except XtfError as e:
+            except NotFound:
+                # Reachable instance, missing resource. Keep it as the live
+                # instance and do not report "no Nitter instance reachable".
+                self._live = inst
+                raise
+            except _FAILOVER as e:
                 errors[inst] = f"{e.code}: {e}"
                 self._live = None
                 print(f"[nitter] {inst} failed ({e.code}), trying next instance...", file=sys.stderr)

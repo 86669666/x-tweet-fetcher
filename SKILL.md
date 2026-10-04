@@ -34,6 +34,7 @@ Fetch tweets from X/Twitter without authentication. For agent-use stories, failu
 ```bash
 # JSON output (default)
 xtf --url https://x.com/user/status/1234567890
+# /i/web/status/<id> and fxtwitter/vxtwitter/fixupx/fixvx links are accepted too
 
 # Human-readable
 xtf --url https://x.com/user/status/1234567890 --text-only

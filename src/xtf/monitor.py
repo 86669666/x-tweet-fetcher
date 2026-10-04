@@ -6,6 +6,7 @@ Cache lives in ``XTF_CACHE_DIR`` (default ~/.x-tweet-fetcher).
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -15,11 +16,18 @@ from .exceptions import XtfError
 from .i18n import t
 
 _CACHE_MAX = 500
+_CACHE_SLUG = re.compile(r"[^a-z0-9_]+")
+
+
+def _cache_slug(username: str) -> str:
+    """Filename-safe monitor key. Never contains path separators."""
+    clean = username.lstrip("@").lower()
+    slug = _CACHE_SLUG.sub("", clean)[:64]
+    return slug or "unknown"
 
 
 def _get_cache_path(username: str) -> Path:
-    clean = username.lstrip("@").lower()
-    return config.cache_dir() / f"mentions-cache-{clean}.json"
+    return config.cache_dir() / f"mentions-cache-{_cache_slug(username)}.json"
 
 
 def _load_cache(username: str) -> dict:

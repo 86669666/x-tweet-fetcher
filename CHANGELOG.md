@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Browser backend keeps the configured Nitter scheme. The default `http://127.0.0.1:8788` is no longer rewritten to `https://`.
+- A Nitter HTTP 404 stays `not_found`. It is no longer reported as `backend_unavailable` ("no instance reachable"), and it does not fail over to the next instance.
+- `--url` accepts `/i/web/status/<id>` plus fxtwitter, vxtwitter, fixupx, and fixvx links. Lookalike hosts such as `nottwitter.com` are rejected. `/i/web/status/<id>` is fetched through FxTwitter's `/i/status/<id>` route.
+- Mentions-monitor cache filenames stay inside `XTF_CACHE_DIR`.
+- FxTwitter normalization tolerates a null `author`, quote author, or `media` object.
+- Ledger query treats a negative `--limit` as the default 50 instead of SQLite's unlimited `LIMIT -1`. `count_existing_tweets` returns 0 when the database has no `tweets` table.
+
 ## 3.1.0 (2026-08-09)
 
 ### 新增：推文库 (Ledger)
