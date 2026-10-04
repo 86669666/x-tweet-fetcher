@@ -24,6 +24,18 @@ from .parsers.urls import extract_list_id, parse_article_id, parse_tweet_url
 from .router import Router
 
 
+def _strip_leading_at(value: str | None) -> str | None:
+    """Treat ``@alice`` and ``alice`` as the same handle.
+
+    An empty result (``--user @``) is left unchanged so the call still fails
+    instead of fetching a blank username.
+    """
+    if not isinstance(value, str):
+        return value
+    stripped = value.strip().lstrip("@").strip()
+    return stripped or value
+
+
 def _emit(result: dict[str, Any], pretty: bool) -> None:
     print(json.dumps(result, ensure_ascii=False, indent=2 if pretty else None))
 
@@ -117,6 +129,8 @@ def main(argv=None) -> None:
     # the page loops return nothing. Match the documented default of 50.
     if args.limit < 0:
         args.limit = 50
+    args.user = _strip_leading_at(args.user)
+    args.user_info = _strip_leading_at(args.user_info)
     set_lang(args.lang or config.default_lang())
     pretty = args.pretty
 

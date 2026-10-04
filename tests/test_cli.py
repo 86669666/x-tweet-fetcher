@@ -158,6 +158,43 @@ def test_archive_if_requested_skips_without_ledger(tmp_path):
     assert "ledger" not in result
 
 
+def test_user_flags_strip_leading_at(monkeypatch, capsys):
+    seen = {}
+
+    class _HandleRouter:
+        last_backend = "nitter"
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def fetch_timeline(self, username, limit=20):
+            seen["user"] = username
+            return [Tweet(author="@alice", author_name="Alice", text="hi",
+                          tweet_id="1", views=1)]
+
+        def fetch_user_info(self, username):
+            seen["info"] = username
+            return {"username": username, "display_name": "Alice"}
+
+    monkeypatch.setattr(cli, "Router", _HandleRouter)
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["--user", " @alice "])
+    assert exc.value.code == 0
+    out = json.loads(capsys.readouterr().out)
+    assert seen["user"] == "alice"
+    assert out["username"] == "alice"
+
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["--user-info", "@alice"])
+    assert exc.value.code == 0
+    info = json.loads(capsys.readouterr().out)
+    assert seen["info"] == "alice"
+    assert info["username"] == "alice"
+
+    # A lone @ is not rewritten into an empty handle.
+    assert cli._strip_leading_at("@") == "@"
+
+
 def test_negative_limit_uses_documented_default(tmp_path, monkeypatch, capsys):
     seen = {}
 

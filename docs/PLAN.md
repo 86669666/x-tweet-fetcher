@@ -4,11 +4,11 @@ Single-stream work on `work/main`. One writer, this checkout. No live X/Twitter 
 
 ## Done in this slice
 
-- A negative `--limit` on fetch and ledger query is the documented default of 50. Explicit `0` still means no rows.
+- `--user @alice` and `--user-info @alice` are fetched as `alice`. A lone `@` is not turned into an empty handle.
 
 ## Next
 
-- Accept a leading `@` on `--user` and `--user-info`, matching `--monitor`, so `@alice` is not sent upstream as a different handle.
+- Percent-encode read-only SQLite URIs. A `?` in the ledger path is parsed as the URI query, so query/stats can open the wrong file and even create an empty sibling.
 - Do not add network fetches, session cookies, or an upstream pull request.
 
 ## Out of scope
