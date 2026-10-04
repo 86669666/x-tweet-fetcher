@@ -113,6 +113,10 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv=None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
+    # SQLite treats LIMIT -1 as unlimited, and a negative fetch limit makes
+    # the page loops return nothing. Match the documented default of 50.
+    if args.limit < 0:
+        args.limit = 50
     set_lang(args.lang or config.default_lang())
     pretty = args.pretty
 

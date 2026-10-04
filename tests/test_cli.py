@@ -158,6 +158,42 @@ def test_archive_if_requested_skips_without_ledger(tmp_path):
     assert "ledger" not in result
 
 
+def test_negative_limit_uses_documented_default(tmp_path, monkeypatch, capsys):
+    seen = {}
+
+    class _LimitRouter:
+        last_backend = "nitter"
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def fetch_timeline(self, username, limit=20):
+            seen["limit"] = limit
+            return [Tweet(author="@alice", author_name="Alice", text="hi",
+                          tweet_id="1", views=1)]
+
+    monkeypatch.setattr(cli, "Router", _LimitRouter)
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["--user", "alice", "--limit", "-5"])
+    assert exc.value.code == 0
+    assert seen["limit"] == 50
+
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["--user", "alice", "--limit", "0"])
+    assert exc.value.code == 0
+    assert seen["limit"] == 0
+    capsys.readouterr()
+
+    from xtf.ledger import archive_tweets
+    db = tmp_path / "ledger.db"
+    archive_tweets(db, [{"tweet_id": str(i), "text": f"row {i}"} for i in range(60)])
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["--ledger", str(db), "--query", "row", "--limit", "-1"])
+    assert exc.value.code == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["count"] == 50
+
+
 def test_query_and_stats_mutually_exclusive(tmp_path):
     db = tmp_path / "ledger.db"
     proc = _run_cli(["--ledger", str(db), "--query", "x", "--stats"])

@@ -12,6 +12,7 @@
 - Ledger query treats a negative `--limit` as the default 50 instead of SQLite's unlimited `LIMIT -1`. `count_existing_tweets` returns 0 when the database has no `tweets` table.
 - Timeline, search, list, and reply items that omit `tweet_id` but include a status URL keep that id on the JSON envelope and in the ledger. A link that only appears in the text, or a lookalike host, is not used as the id.
 - `--list` and `--article` accept bare ids and `x.com` / `twitter.com` URLs only. A lookalike host that contains `/i/lists/` or `/i/article/` is rejected. Mention search ignores results whose host is not X or Twitter, including `notx.com` and pages that only mention `x.com` in the query string.
+- A negative `--limit` on a fetch uses the documented default of 50 instead of returning an empty page. An explicit `0` is unchanged. Ledger query already had the same guard.
 
 ## 3.1.0 (2026-08-09)
 

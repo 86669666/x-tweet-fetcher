@@ -4,14 +4,11 @@ Single-stream work on `work/main`. One writer, this checkout. No live X/Twitter 
 
 ## Done in this slice
 
-URL identity only. Bare numeric list and article ids stay valid.
-
-- `--list` and `--article` accept `x.com` and `twitter.com` (including www/mobile) and reject other hosts.
-- Browser mention search keeps a result only when the host is X or Twitter. `notx.com` and `example.com/?q=x.com` are dropped.
+- A negative `--limit` on fetch and ledger query is the documented default of 50. Explicit `0` still means no rows.
 
 ## Next
 
-- Clamp a negative fetch `--limit` the same way ledger query already does, so it is not a silent empty result.
+- Accept a leading `@` on `--user` and `--user-info`, matching `--monitor`, so `@alice` is not sent upstream as a different handle.
 - Do not add network fetches, session cookies, or an upstream pull request.
 
 ## Out of scope
