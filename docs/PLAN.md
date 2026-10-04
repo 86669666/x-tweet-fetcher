@@ -4,19 +4,16 @@ Single-stream work on `work/main`. One writer, this checkout. No live X/Twitter 
 
 ## Done in this slice
 
-Local correctness only. Happy-path JSON field names stay the same.
+Local identity only. Happy-path JSON field names stay the same when an id is already present.
 
-- Browser pages use the configured Nitter base URL, scheme included.
-- Nitter 404 is `not_found` and does not fail over.
-- Tweet URL parsing accepts `/i/web/status/<id>` and common embed hosts, and rejects lookalike hosts.
-- Monitor cache files cannot leave `XTF_CACHE_DIR`.
-- FxTwitter `author: null` no longer crashes normalization.
-- Ledger query no longer treats a negative limit as unlimited. Counting ids in a foreign database without a `tweets` table returns 0.
+- Timeline, search, list, and reply records that omit `tweet_id` but carry a status URL (`url`, `tweet_url`, or `status_url`) use that id on both the fetch envelope and the ledger row.
+- Explicit ids still win. `conversation_id`, links that only appear in the text, and lookalike hosts do not become the id.
+- Captured Nitter pages in `tests/fixtures` do not use abbreviated stat text (`12.3K`), so that parser change stays out.
 
 ## Next
 
-- Keep archive and fetch envelopes aligned when a backend omits `tweet_id` outside the single-tweet path.
-- Add a pure fixture for Nitter abbreviated stat text (`12.3K`) only if a captured page actually uses it.
+- Reject list and article ids that are embedded in a non-X host, the same way tweet URLs already reject lookalikes. Bare numeric ids stay valid.
+- Clamp a negative fetch `--limit` the same way ledger query already does, so it is not a silent empty result.
 - Do not add network fetches, session cookies, or an upstream pull request.
 
 ## Out of scope

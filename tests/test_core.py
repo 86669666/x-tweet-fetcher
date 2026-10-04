@@ -45,6 +45,38 @@ def test_tweet_from_nitter_entry_normalizes_handle():
     assert tw.media == ["m1"]
 
 
+def test_nitter_entry_id_comes_from_status_url():
+    tw = Tweet.from_nitter_entry({
+        "username": "alice",
+        "display_name": "Alice",
+        "text": "from the permalink",
+        "time": "1h",
+        "views": 1,
+        "url": "https://x.com/alice/status/555#m",
+    })
+    assert tw.tweet_id == "555"
+    assert tw.to_dict()["tweet_id"] == "555"
+    # An explicit id wins, and a lookalike host does not invent one.
+    kept = Tweet.from_nitter_entry({
+        "username": "alice", "text": "x", "tweet_id": "1",
+        "url": "https://x.com/alice/status/555",
+    })
+    assert kept.tweet_id == "1"
+    rejected = Tweet.from_nitter_entry({
+        "username": "alice", "text": "x",
+        "url": "https://nottwitter.com/alice/status/99",
+    })
+    assert rejected.tweet_id == ""
+
+
+def test_snapshot_reply_id_comes_from_status_url():
+    reply = Reply.from_snapshot_entry({
+        "author": "@bob", "author_name": "Bob", "text": "reply",
+        "url": "https://fxtwitter.com/bob/status/777",
+    })
+    assert reply.to_dict()["tweet_id"] == "777"
+
+
 def test_reply_to_dict_v1_shape():
     d = Reply(author="@a", author_name="A", text="t", time_ago="1h",
               likes=1, replies=0, views=2).to_dict()
@@ -295,3 +327,27 @@ def test_monitor_cache_cannot_escape_dir(tmp_path, monkeypatch):
     loaded = monitor._load_cache("../../etc/passwd")
     assert loaded["seen"] == ["https://x.com/a/status/1"]
 
+
+
+def test_nitter_replies_use_status_url_id(monkeypatch):
+    from xtf.backends.nitter import NitterBackend
+
+    backend = NitterBackend(instances=["http://127.0.0.1:9"])
+    monkeypatch.setattr(backend, "_get_html", lambda path: "<html></html>")
+    monkeypatch.setattr(
+        "xtf.backends.nitter.parse_tweet_detail_html",
+        lambda html, username, tweet_id: {
+            "replies_list": [{
+                "username": "bob",
+                "display_name": "Bob",
+                "text": "reply body",
+                "time": "2h",
+                "likes": 1,
+                "views": 1,
+                "url": "https://x.com/bob/status/777",
+                "tweet_id": "",
+            }]
+        },
+    )
+    replies = backend.fetch_replies("alice", "1")
+    assert replies[0].to_dict()["tweet_id"] == "777"

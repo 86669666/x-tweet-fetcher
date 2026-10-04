@@ -19,6 +19,7 @@ from ..parsers.nitter_html import (
     _parse_html,
     parse_tweet_detail_html,
 )
+from ..parsers.urls import resolve_tweet_id
 from .base import Backend
 
 _HEADERS = {
@@ -126,7 +127,7 @@ class NitterBackend(Backend):
                     retweets=r.get("retweets", 0),
                     replies=r.get("replies", 0),
                     views=r.get("views", 0),
-                    tweet_id=str(r.get("tweet_id", "") or ""),
+                    tweet_id=resolve_tweet_id(r),
                     media=list(r.get("media_urls", []) or []),
                 )
             )

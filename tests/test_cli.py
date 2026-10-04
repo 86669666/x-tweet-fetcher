@@ -201,6 +201,34 @@ class _FakeRepliesRouter:
         ]
 
 
+def test_timeline_envelope_and_ledger_share_url_id(tmp_path, monkeypatch, capsys):
+    class _UrlOnlyRouter:
+        last_backend = "nitter"
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def fetch_timeline(self, username, limit=20):
+            return [Tweet.from_nitter_entry({
+                "username": "alice",
+                "display_name": "Alice",
+                "text": "permalink only",
+                "time": "1h",
+                "views": 1,
+                "url": "https://x.com/alice/status/555",
+            })]
+
+    monkeypatch.setattr(cli, "Router", _UrlOnlyRouter)
+    db = tmp_path / "ledger.db"
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["--user", "alice", "--ledger", str(db)])
+    assert exc.value.code == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["tweets"][0]["tweet_id"] == "555"
+    assert out["ledger"]["inserted"] == 1
+    assert query_ledger(db)[0]["tweet_id"] == "555"
+
+
 def test_single_tweet_archives_with_injected_id(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(cli, "Router", _FakeFxtwitterRouter)
     db = tmp_path / "ledger.db"

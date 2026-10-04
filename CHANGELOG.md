@@ -10,6 +10,7 @@
 - Mentions-monitor cache filenames stay inside `XTF_CACHE_DIR`.
 - FxTwitter normalization tolerates a null `author`, quote author, or `media` object.
 - Ledger query treats a negative `--limit` as the default 50 instead of SQLite's unlimited `LIMIT -1`. `count_existing_tweets` returns 0 when the database has no `tweets` table.
+- Timeline, search, list, and reply items that omit `tweet_id` but include a status URL keep that id on the JSON envelope and in the ledger. A link that only appears in the text, or a lookalike host, is not used as the id.
 
 ## 3.1.0 (2026-08-09)
 

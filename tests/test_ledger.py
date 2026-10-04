@@ -144,6 +144,36 @@ def test_normalize_rejects_conversation_id_only():
         )
 
 
+def test_normalize_id_from_status_url_not_text_or_lookalike():
+    row = normalize(
+        {
+            "conversation_id": "555",
+            "url": "https://x.com/alice/status/99",
+            "text": "see https://x.com/someone/status/12345",
+            "quoted_tweet": {
+                "text": "inner",
+                "url": "https://twitter.com/carol/status/42?s=20",
+            },
+        },
+        "t",
+        "2026-08-09T00:00:00+00:00",
+    )
+    assert row[0] == "99"
+    assert row[8] == "42"
+    with pytest.raises(ValueError):
+        normalize(
+            {"url": "https://nottwitter.com/alice/status/99", "text": "hi"},
+            "t",
+            "2026-08-09T00:00:00+00:00",
+        )
+    with pytest.raises(ValueError):
+        normalize(
+            {"text": "see https://x.com/alice/status/99"},
+            "t",
+            "2026-08-09T00:00:00+00:00",
+        )
+
+
 def test_normalize_rejects_missing_fields():
     with pytest.raises(ValueError):
         normalize({"text": "no id"}, "t", "2026-08-09T00:00:00+00:00")

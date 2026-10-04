@@ -17,12 +17,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .parsers.urls import resolve_tweet_id
+
 #: Key fallbacks accept richer backend dicts (FxTwitter / Nitter raw rows)
 #: when available. Relative time fields (``time_ago``/``time``, e.g. "3h")
 #: are deliberately excluded from ``_CREATED_KEYS``: they are never real
 #: timestamps and would corrupt ordering and stats time ranges.
 _TEXT_KEYS = ("full_text", "text", "content", "tweet")
-_ID_KEYS = ("tweet_id", "id_str", "id")
 _CREATED_KEYS = ("created_at", "timestamp", "date")
 _LANG_KEYS = ("lang", "language")
 _REPLY_KEYS = ("in_reply_to_status_id", "in_reply_to_status_id_str")
@@ -97,9 +98,11 @@ def _extract_urls(text: str) -> list[str]:
 def normalize(record: dict[str, Any], source: str, imported_at: str) -> tuple[str, ...]:
     """Map a tweet dict (xtf ``to_dict()`` or a raw backend row) to a ledger row.
 
+    A missing id is taken from a status URL field (``url`` / ``tweet_url`` /
+    ``status_url``), not from free text or ``conversation_id``.
     Raises ValueError when the record has no usable tweet id or text.
     """
-    tweet_id = _first(record, *_ID_KEYS)
+    tweet_id = resolve_tweet_id(record) or None
     text = _first(record, *_TEXT_KEYS)
     if not tweet_id or not text:
         raise ValueError("record missing tweet_id/id or full_text/text")
@@ -113,7 +116,7 @@ def normalize(record: dict[str, Any], source: str, imported_at: str) -> tuple[st
     if not quoted_id:
         quoted = record.get("quoted_tweet")
         if isinstance(quoted, dict):
-            quoted_id = _first(quoted, *_ID_KEYS)
+            quoted_id = resolve_tweet_id(quoted) or None
         elif quoted is not None and hasattr(quoted, "to_dict"):
             quoted_id = quoted.to_dict().get("tweet_id") or None
 

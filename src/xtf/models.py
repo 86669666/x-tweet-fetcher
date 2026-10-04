@@ -13,6 +13,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from .parsers.urls import resolve_tweet_id
+
 
 def _drop_empty(d: dict[str, Any], keys: tuple) -> dict[str, Any]:
     for k in keys:
@@ -50,7 +52,7 @@ class Tweet:
             retweets=d.get("retweets", 0),
             replies=d.get("replies", 0),
             views=d.get("views", 0),
-            tweet_id=str(d.get("tweet_id", "") or ""),
+            tweet_id=resolve_tweet_id(d),
             media=list(d.get("media", []) or []),
             retweeted_by=d.get("retweeted_by"),
             quoted_tweet=cls.from_snapshot_entry(qt) if qt else None,
@@ -69,7 +71,7 @@ class Tweet:
             retweets=d.get("retweets", 0),
             replies=d.get("replies", 0),
             views=d.get("views", 0),
-            tweet_id=str(d.get("tweet_id", "") or ""),
+            tweet_id=resolve_tweet_id(d),
             media=list(d.get("media_urls", []) or []),
         )
 
@@ -122,7 +124,7 @@ class Reply:
             retweets=d.get("retweets", 0),
             replies=d.get("replies", 0),
             views=d.get("views", 0),
-            tweet_id=str(d.get("tweet_id", "") or ""),
+            tweet_id=resolve_tweet_id(d),
             media=list(d.get("media", []) or []),
             links=list(d.get("links", []) or []),
             thread_replies=list(d.get("thread_replies", []) or []),

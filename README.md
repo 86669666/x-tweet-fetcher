@@ -107,7 +107,7 @@ xtf --ledger ~/tweets.db --query "sop"
 xtf --ledger ~/tweets.db --stats
 ```
 
-Behavior without `--ledger` is unchanged (3.0.0-compatible). Archiving never breaks a successful fetch — on failure the JSON envelope carries `ledger_error` instead. Single-tweet (fxtwitter) dicts lack `tweet_id`, so the CLI injects it from the URL; `--replies` results are archived with `is_reply=1` and `in_reply_to_status_id` pointing at the parent tweet.
+Behavior without `--ledger` is unchanged (3.0.0-compatible). Archiving never breaks a successful fetch — on failure the JSON envelope carries `ledger_error` instead. Single-tweet (fxtwitter) dicts lack `tweet_id`, so the CLI injects it from the URL; `--replies` results are archived with `is_reply=1` and `in_reply_to_status_id` pointing at the parent tweet. Timeline, search, list, and reply items that have no id of their own use a status URL stored on that item, so the JSON `tweet_id` and the archived row match. A URL that only appears in the text is not that id.
 
 `tweets` table: `tweet_id` (PK) · `created_at` · `full_text` · `lang` · `source_file` · `is_reply` · `in_reply_to_status_id` · `retweeted_status_id` · `quoted_status_id` · `urls_json` · `media_json` · `raw_json` · `imported_at`
 

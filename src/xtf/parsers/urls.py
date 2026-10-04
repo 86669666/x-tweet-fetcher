@@ -34,6 +34,40 @@ def parse_tweet_url(url: str) -> tuple:
     return username, tweet_id
 
 
+def status_id_from_url(value: object) -> str | None:
+    """Return a status id from an X/Twitter or embed URL, else None.
+
+    Lookalike hosts are rejected. This does not scan free text; callers pass
+    a dedicated URL field so a mentioned status is not treated as this item.
+    """
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    try:
+        _username, tweet_id = parse_tweet_url(text)
+    except ValueError:
+        return None
+    return tweet_id
+
+
+def resolve_tweet_id(record: dict) -> str:
+    """Prefer an explicit id, otherwise a status URL stored on the record.
+
+    ``conversation_id`` is intentionally not an id field. A URL that only
+    appears in the tweet text is ignored.
+    """
+    for key in ("tweet_id", "id_str", "id"):
+        value = record.get(key)
+        if value not in (None, ""):
+            return str(value)
+    for key in ("url", "tweet_url", "status_url"):
+        found = status_id_from_url(record.get(key))
+        if found:
+            return found
+    return ""
+
 
 def extract_list_id(input_str: str) -> str | None:
     """Extract list ID from a URL or raw ID string.
