@@ -538,3 +538,30 @@ def test_nitter_quotes_user_and_status_path_segments():
         "/a%20b%2F..%2Fx%3Fy%3D1",
         "/alice/status/20",
     ]
+
+
+def test_monitor_strips_space_around_handle(tmp_path, monkeypatch):
+    monkeypatch.setenv("XTF_CACHE_DIR", str(tmp_path))
+    from xtf import monitor
+
+    seen = {}
+
+    class FakeBrowser:
+        port = 9377
+
+        def available(self):
+            return True
+
+        def search_mentions(self, username, limit=10):
+            seen["username"] = username
+            return [{"url": "https://x.com/a/status/1", "title": "t", "snippet": ""}]
+
+    class FakeRouter:
+        browser = FakeBrowser()
+        nitter = None
+
+    result = monitor.monitor_mentions(FakeRouter(), " @Alice ", use_nitter=False)
+    assert seen["username"] == "Alice"
+    assert result["username"] == "Alice"
+    assert result["is_baseline"] is True
+    assert (tmp_path / "mentions-cache-alice.json").exists()

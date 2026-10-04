@@ -19,6 +19,17 @@ _CACHE_MAX = 500
 _CACHE_SLUG = re.compile(r"[^a-z0-9_]+")
 
 
+def _clean_handle(username: str) -> str:
+    """Treat ``@alice`` and `` @alice `` as ``alice``.
+
+    A handle that is only ``@`` or spaces becomes empty so the search does
+    not keep the surrounding whitespace.
+    """
+    if not isinstance(username, str):
+        return username
+    return username.strip().lstrip("@").strip()
+
+
 def _cache_slug(username: str) -> str:
     """Filename-safe monitor key. Never contains path separators."""
     clean = username.lstrip("@").lower()
@@ -84,8 +95,9 @@ def _search_mentions_nitter(nitter_backend, username: str, limit: int) -> list[d
 def monitor_mentions(router, username: str, limit: int = 10,
                      use_nitter: bool = False) -> dict[str, Any]:
     """Run one monitor cycle. Returns v1-compatible result dict."""
+    username = _clean_handle(username)
     result: dict[str, Any] = {
-        "username": username.lstrip("@"),
+        "username": username,
         "new_mentions": [],
         "is_baseline": False,
         "known_count": 0,

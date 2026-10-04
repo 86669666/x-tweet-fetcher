@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- `--monitor` treats ` @alice ` the same as `alice`. Surrounding spaces and a leading `@` are removed before the mention search and the cache filename are chosen.
+
 - Nitter HTTP paths percent-encode each username and status id. A slash or question mark in those values can no longer change the request path or query. The browser backend already encoded its path segments.
 
 - A non-object FxTwitter body, or a null `tweet` / non-object `user`, raises `upstream_down` (or `not_found` for an empty user) instead of crashing. View supplementation still skips that payload.
