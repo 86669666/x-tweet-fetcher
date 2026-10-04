@@ -4,11 +4,11 @@ Single-stream work on `work/main`. One writer, this checkout. No live X/Twitter 
 
 ## Done in this slice
 
-- FxTwitter fetch treats a non-object body, a null `tweet`, or a non-object `user` as a typed error. View supplementation skips that payload instead of raising.
+- Nitter HTTP paths percent-encode each username and status id, matching the browser backend. A slash or question mark in those values cannot retarget the request.
 
 ## Next
 
-- Quote Nitter HTTP path segments the same way the browser backend already does, so a slash or question mark in a username cannot change the request path.
+- `--monitor` still does not use the same leading-`@` / surrounding-space strip as `--user`.
 - Abbreviated Nitter stat text (`12.3K`) stays out until a captured page actually uses it. Do not add a synthetic fixture for that.
 - Do not add network fetches, session cookies, or an upstream pull request.
 

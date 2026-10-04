@@ -514,3 +514,27 @@ def test_supplement_views_ignores_malformed_payload(monkeypatch):
     assert out[0]["views"] == 0
     assert out[1]["views"] == 0
     assert out[2]["views"] == 12
+
+
+def test_nitter_quotes_user_and_status_path_segments():
+    from xtf.backends.nitter import NitterBackend, _quoted_path
+
+    assert _quoted_path("alice") == "/alice"
+    assert _quoted_path("alice", "status", "20") == "/alice/status/20"
+    assert _quoted_path("a b/../x?y=1") == "/a%20b%2F..%2Fx%3Fy%3D1"
+    assert _quoted_path("a/b", "status", "1?x") == "/a%2Fb/status/1%3Fx"
+
+    backend = NitterBackend(instances=["http://127.0.0.1:9"])
+    seen = []
+
+    def fake_get_html(path):
+        seen.append(path)
+        return ""
+
+    backend._get_html = fake_get_html
+    backend.fetch_user_info("a b/../x?y=1")
+    backend.fetch_replies("alice", "20")
+    assert seen == [
+        "/a%20b%2F..%2Fx%3Fy%3D1",
+        "/alice/status/20",
+    ]

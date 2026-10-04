@@ -37,6 +37,20 @@ _MAX_PAGES = 10
 _FAILOVER = (RateLimited, UpstreamDown)
 
 
+def _quoted_path(*segments: str) -> str:
+    """Percent-encode each path segment, matching the browser backend.
+
+    A slash, question mark, or space in a username or id must not become
+    another path segment or a query string.
+    """
+    parts = [
+        urllib.parse.quote(str(segment).strip("/"), safe="")
+        for segment in segments
+        if str(segment).strip("/")
+    ]
+    return "/" + "/".join(parts)
+
+
 class NitterBackend(Backend):
     name = "nitter"
 
@@ -113,7 +127,7 @@ class NitterBackend(Backend):
         return self.search(f"from:{username}", limit=limit)
 
     def fetch_replies(self, username: str, tweet_id: str) -> list[Reply]:
-        html = self._get_html(f"/{username}/status/{tweet_id}")
+        html = self._get_html(_quoted_path(username, "status", tweet_id))
         detail = parse_tweet_detail_html(html, username, tweet_id)
         replies: list[Reply] = []
         for r in detail.get("replies_list", []):
@@ -134,7 +148,7 @@ class NitterBackend(Backend):
         return replies
 
     def fetch_user_info(self, username: str) -> Profile:
-        html = self._get_html(f"/{username}")
+        html = self._get_html(_quoted_path(username))
         info = _extract_user_info(html, username)
         return Profile(
             username=info.get("username", username),

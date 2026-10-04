@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Nitter HTTP paths percent-encode each username and status id. A slash or question mark in those values can no longer change the request path or query. The browser backend already encoded its path segments.
+
 - A non-object FxTwitter body, or a null `tweet` / non-object `user`, raises `upstream_down` (or `not_found` for an empty user) instead of crashing. View supplementation still skips that payload.
 
 - Status, list, and article ids are taken from the URL host and path. A page on another host that only contains `x.com/...` in its path or query is rejected, so it cannot be archived or fetched as that id.
